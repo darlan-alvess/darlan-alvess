@@ -4,6 +4,10 @@
 
 Atualmente estudando e desenvolvendo projetos web com foco em criação de interfaces modernas, responsivas e organizadas.
 
+## 🎯 Objetivo
+
+Busco oportunidades para atuar como Desenvolvedor Front-End, contribuindo com criação de interfaces web, manutenção de sistemas e evolução contínua em desenvolvimento web.
+
 Tenho aplicado na prática conceitos de desenvolvimento Front-End utilizando HTML5, CSS3 e boas práticas de organização de código.
 
 ---
