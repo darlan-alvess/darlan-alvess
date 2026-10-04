@@ -1,0 +1,85 @@
+//=====================================================================
+// Painel de Risco
+// Indicador NTSL para Profit (Nelogica)
+//
+// Vai numa JANELA SEPARADA, abaixo do grafico de preco.
+//
+// Mostra o stop sugerido em PONTOS, derivado do ATR, e tres linhas de
+// referencia que marcam onde muda a quantidade de contratos para o
+// risco em reais que voce configurar.
+//
+// Quanto maior o stop, menos contratos cabem no mesmo risco. Entao a
+// linha de MAIS contratos e a mais BAIXA do painel.
+//
+// COMO LER (com os valores padrao 4 / 3 / 2, risco R$200, WIN):
+//   stop abaixo de 250 pts   -> 4 contratos ou mais
+//   entre 250 e 333 pts      -> 3 contratos
+//   entre 333 e 500 pts      -> 2 contratos
+//   acima de 500 pts         -> 1 contrato
+//
+// As linhas saem de RiscoReais / (N * ValorPonto), a mesma conta da aba
+// Dimensionamento da planilha de controle.
+//
+// No grafico de 1 minuto o ATR e muito menor, entao o stop sugerido cai
+// e a quantidade de contratos sobe. Para o painel continuar util ali,
+// use RefContratos 12 / 9 / 6 em vez de 4 / 3 / 2.
+//=====================================================================
+
+input
+  PeriodoATR(14);      // mesmo periodo do indicador de zonas
+  MultStop(1.5);       // stop sugerido = MultStop x ATR
+  RiscoReais(200);     // quanto voce aceita perder por trade
+  ValorPonto(0.20);    // WIN = 0,20 por ponto. WDO = 10,00 por ponto
+  RefContratosA(4);    // mais contratos -> linha MAIS BAIXA no painel
+  RefContratosB(3);    // linha do meio
+  RefContratosC(2);    // menos contratos -> linha MAIS ALTA no painel
+  BarraFechada(1);     // 1 = usa a barra fechada (nao repinta)
+
+var
+  d       : integer;
+  i       : integer;
+  tr      : float;
+  somaTR  : float;
+  atr     : float;
+  stopPts : float;
+
+begin
+  if (BarraFechada = 1) then
+    d := 1
+  else
+    d := 0;
+
+  if (CurrentBar < (PeriodoATR + d + 2)) then
+  begin
+    PlotN(1, 0);
+    PlotN(2, 0);
+    PlotN(3, 0);
+    PlotN(4, 0);
+  end
+  else
+  begin
+    somaTR := 0;
+    for i := d to (d + PeriodoATR - 1) do
+    begin
+      tr := High[i] - Low[i];
+      if (Abs(High[i] - Close[i + 1]) > tr) then
+        tr := Abs(High[i] - Close[i + 1]);
+      if (Abs(Low[i] - Close[i + 1]) > tr) then
+        tr := Abs(Low[i] - Close[i + 1]);
+      somaTR := somaTR + tr;
+    end;
+    atr := somaTR / PeriodoATR;
+
+    stopPts := MultStop * atr;
+
+    PlotN(1, stopPts);                           // stop sugerido, em pontos
+    PlotN(2, RiscoReais / (RefContratosA * ValorPonto));
+    PlotN(3, RiscoReais / (RefContratosB * ValorPonto));
+    PlotN(4, RiscoReais / (RefContratosC * ValorPonto));
+
+    SetPlotColor(1, clAqua);
+    SetPlotColor(2, clGray);
+    SetPlotColor(3, clGray);
+    SetPlotColor(4, clGray);
+  end;
+end;
