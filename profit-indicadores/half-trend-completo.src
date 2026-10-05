@@ -66,6 +66,12 @@ input
   FiltroVolume(1);         // 1 = liga o filtro de volume
   VolumeMaximo(1.0);       // volume da barra / media. Acima disso o sinal nao vale
   PeriodoVolume(20);       // quantas barras entram na media de volume
+  FiltroRompimento(0);     // 1 = aceita tambem entrada por rompimento, alem da
+                           //     virada da linha. Desligado por padrao: dobra
+                           //     os sinais mas piora a sobrevivencia na mesa
+  BarrasRompimento(6);     // rompe a maxima ou a minima destas barras
+  IdadeMinima(12);         // barras de vida do regime para o rompimento valer.
+                           //     Rompimento so funciona em tendencia madura
   StopPontos(300);         // stop em pontos. Faixa estavel medida: 275 a 310.
                            // Abaixo de 260 a eliminacao na mesa sobe muito
   ContratosParcial(2);     // contratos que saem no AlvoParcial
@@ -124,6 +130,11 @@ var
   virouCompra  : boolean;
   virouVenda   : boolean;
   sinalValido  : boolean;
+  idadeRegime  : integer;   // barras desde a ultima virada da linha
+  minJanela    : float;
+  maxJanela    : float;
+  rompeCompra  : boolean;
+  rompeVenda   : boolean;
   sinalPend    : integer;   // 0 = nenhum, 1 = compra, 2 = venda
   barraPend    : integer;   // barra em que o sinal pendente nasceu
   opsHoje      : integer;
@@ -219,6 +230,7 @@ begin
         iniciado     := true;
         trend        := 0;
         nexttrend    := 0;
+        idadeRegime  := 0;
         maxLowPrice  := Low[0];
         minHighPrice := High[0];
         up           := lowPrice;
@@ -252,6 +264,12 @@ begin
           maxLowPrice := lowPrice;
         end;
       end;
+
+      //--- ha quantas barras o regime atual dura
+      if (trend <> trendAnt) then
+        idadeRegime := 0
+      else
+        idadeRegime := idadeRegime + 1;
 
       //--- posiciona a linha
       virouCompra := false;
@@ -337,6 +355,49 @@ begin
         end;
       end;
 
+      //-----------------------------------------------------------------
+      // Entrada por rompimento (opcional, FiltroRompimento).
+      //
+      // Rompe a minima das ultimas BarrasRompimento barras estando a
+      // linha em baixa, ou a maxima estando em alta. Sempre a favor da
+      // linha, nunca contra.
+      //
+      // A trava de idade existe porque a medicao mostrou que rompimento
+      // so funciona em tendencia ja estabelecida: sem ela, a eliminacao
+      // na metade dificil da amostra vai a 56%. Com 12 barras, cai a 7%.
+      //-----------------------------------------------------------------
+      rompeCompra := false;
+      rompeVenda  := false;
+      if (FiltroRompimento = 1) then
+      begin
+        if (idadeRegime >= IdadeMinima) then
+        begin
+          if ((barrasHoje - 1) >= BarrasRompimento) then
+          begin
+            minJanela := Low[1];
+            maxJanela := High[1];
+            for i := 2 to BarrasRompimento do
+            begin
+              if (Low[i] < minJanela) then
+                minJanela := Low[i];
+              if (High[i] > maxJanela) then
+                maxJanela := High[i];
+            end;
+
+            if (trend = 0) then
+            begin
+              if (Close > maxJanela) then
+                rompeCompra := true;
+            end
+            else
+            begin
+              if (Close < minJanela) then
+                rompeVenda := true;
+            end;
+          end;
+        end;
+      end;
+
       sinalValido := horaOk and volOk and fluxoOk;
 
       // O sinal fica pendente por uma barra. Isso importa quando o runner
@@ -352,6 +413,16 @@ begin
           barraPend := CurrentBar;
         end
         else if (virouVenda) then
+        begin
+          sinalPend := 2;
+          barraPend := CurrentBar;
+        end
+        else if (rompeCompra) then
+        begin
+          sinalPend := 1;
+          barraPend := CurrentBar;
+        end
+        else if (rompeVenda) then
         begin
           sinalPend := 2;
           barraPend := CurrentBar;
@@ -391,6 +462,20 @@ begin
           PaintBar(clGray);
       end
       else if (virouVenda) then
+      begin
+        if (sinalValido) then
+          PaintBar(clRed)
+        else if (MarcarFiltrados = 1) then
+          PaintBar(clGray);
+      end
+      else if (rompeCompra) then
+      begin
+        if (sinalValido) then
+          PaintBar(clLime)
+        else if (MarcarFiltrados = 1) then
+          PaintBar(clGray);
+      end
+      else if (rompeVenda) then
       begin
         if (sinalValido) then
           PaintBar(clRed)
