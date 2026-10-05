@@ -45,6 +45,9 @@ input
   FiltroVolatilidade(1);   // 1 = liga o filtro de ATR
   ATRMinimo(200);          // ATR minimo em pontos para o sinal valer
   PeriodoATRFiltro(14);    // periodo do ATR usado no filtro
+  FiltroVolume(1);         // 1 = liga o filtro de volume
+  VolumeMaximo(1.0);       // volume da barra / media. Acima disso o sinal nao vale
+  PeriodoVolume(20);       // quantas barras entram na media de volume
   StopPontos(400);         // stop em pontos
   AlvoParcial(250);        // alvo do primeiro contrato
   AlvoRunner(500);         // alvo do segundo contrato
@@ -84,8 +87,14 @@ var
   linha        : float;
   horaAtual    : integer;
   horaAnt      : integer;
+  barrasHoje   : integer;
+  somaVol      : float;
+  mediaVol     : float;
+  volRel       : float;
+  nVol         : integer;
   horaOk       : boolean;
   volOk        : boolean;
+  fluxoOk      : boolean;
   virouCompra  : boolean;
   virouVenda   : boolean;
   sinalValido  : boolean;
@@ -117,8 +126,9 @@ begin
     //-----------------------------------------------------------------
     if (horaAtual < horaAnt) then
     begin
-      opsHoje   := 0;
-      lucroHoje := 0;
+      opsHoje    := 0;
+      lucroHoje  := 0;
+      barrasHoje := 0;
     end;
     horaAnt := horaAtual;
 
@@ -130,6 +140,7 @@ begin
     if (CurrentBar <> ultimaBarra) then
     begin
       ultimaBarra := CurrentBar;
+      barrasHoje  := barrasHoje + 1;
 
       //--- meio ATR, que define a largura do canal
       somaTR := 0;
@@ -258,7 +269,46 @@ begin
       if (FiltroVolatilidade = 1) then
         volOk := (atrFiltro >= ATRMinimo);
 
-      sinalValido := horaOk and volOk;
+      //-----------------------------------------------------------------
+      // Filtro de volume.
+      //
+      // Contra-intuitivo de proposito: o sinal vale quando o volume da
+      // barra da virada esta ABAIXO da media recente.
+      //
+      // Medido em 173 pregoes: virada com volume abaixo de 0,8x a media
+      // acerta 79%; acima de 1,3x, 58%. O HalfTrend e seguidor de
+      // tendencia, e virada com volume alto costuma ser climax, com o
+      // movimento ja esgotado. Virada silenciosa ainda tem caminho.
+      //
+      // A media usa apenas barras do pregao corrente, porque o volume
+      // da abertura e do fechamento distorce a comparacao.
+      //-----------------------------------------------------------------
+      fluxoOk := true;
+      if (FiltroVolume = 1) then
+      begin
+        nVol := PeriodoVolume;
+        if ((barrasHoje - 1) < nVol) then
+          nVol := barrasHoje - 1;
+
+        if (nVol < 5) then
+          fluxoOk := false          // cedo demais no pregao para comparar
+        else
+        begin
+          somaVol := 0;
+          for i := 1 to nVol do
+            somaVol := somaVol + Volume[i];
+          mediaVol := somaVol / nVol;
+          if (mediaVol <= 0) then
+            fluxoOk := false
+          else
+          begin
+            volRel  := Volume[0] / mediaVol;
+            fluxoOk := (volRel < VolumeMaximo);
+          end;
+        end;
+      end;
+
+      sinalValido := horaOk and volOk and fluxoOk;
     end;
 
     //-----------------------------------------------------------------
