@@ -52,7 +52,7 @@ input
   MaxOperacoesDia(2);      // entradas por pregao
   AlvoDiaReais(600);       // para de operar ao atingir este lucro no dia
   ValorPonto(0.20);        // WIN = 0,20. WDO = 10,00
-  Operar(1);               // 0 = so desenha, nao envia ordens
+  Operar(0);               // 0 = so desenha (sem setas) | 1 = envia ordens, para o Backtest
   MostrarCanal(1);
   PintarVirada(1);
   MarcarFiltrados(1);
@@ -92,6 +92,7 @@ var
   opsHoje      : integer;
   lucroHoje    : float;
   fezParcial   : boolean;
+  entradaArmada: boolean;
   precoEntrada : float;
   stopAtual    : float;
   minBarras    : integer;
@@ -307,6 +308,14 @@ begin
     begin
       if (IsBought) then
       begin
+        // primeira barra com a posicao aberta: pega o preenchimento real
+        if (entradaArmada) then
+        begin
+          entradaArmada := false;
+          precoEntrada  := BuyPrice;
+          stopAtual     := BuyPrice - StopPontos;
+        end;
+
         if (horaAtual >= HoraZerar) then
           SellToCoverAtMarket(2)
         else
@@ -342,6 +351,13 @@ begin
       end
       else if (IsSold) then
       begin
+        if (entradaArmada) then
+        begin
+          entradaArmada := false;
+          precoEntrada  := SellPrice;
+          stopAtual     := SellPrice + StopPontos;
+        end;
+
         if (horaAtual >= HoraZerar) then
           BuyToCoverAtMarket(2)
         else
@@ -389,18 +405,19 @@ begin
               if (virouCompra) then
               begin
                 BuyAtMarket(2);
-                precoEntrada := Close;
-                stopAtual    := Close - StopPontos;
-                fezParcial   := false;
-                opsHoje      := opsHoje + 1;
+                // O preco de entrada NAO e definido aqui. A ordem executa
+                // na abertura do candle seguinte, e so la o preenchimento
+                // real existe. Fixar Close aqui desloca stop e alvos.
+                entradaArmada := true;
+                fezParcial    := false;
+                opsHoje       := opsHoje + 1;
               end
               else if (virouVenda) then
               begin
                 SellShortAtMarket(2);
-                precoEntrada := Close;
-                stopAtual    := Close + StopPontos;
-                fezParcial   := false;
-                opsHoje      := opsHoje + 1;
+                entradaArmada := true;
+                fezParcial    := false;
+                opsHoje       := opsHoje + 1;
               end;
             end;
           end;
