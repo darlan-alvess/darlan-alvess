@@ -1,0 +1,411 @@
+//=====================================================================
+// HalfTrend Completo
+// Indicador + Estrategia num arquivo so, para o Profit (Nelogica)
+//
+// Plota a linha e o canal, pinta os candles nas viradas e executa as
+// ordens. Serve tanto inserido no grafico quanto rodando no Backtest.
+//
+// REGRAS
+//   entrada   na virada da linha, a mercado
+//   filtros   so entre HoraInicio e HoraFim, e so com ATR acima do minimo
+//   posicao   2 contratos
+//   parcial   1 contrato sai em +AlvoParcial pontos
+//   runner    1 contrato sai em +AlvoRunner pontos
+//   stop      StopPontos, e vai para o zero a zero depois da parcial
+//   dia       encerra tudo em HoraZerar, maximo MaxOperacoesDia entradas,
+//             para de operar ao atingir AlvoDiaReais
+//
+// CORES
+//   linha verde abaixo do preco  -> tendencia de alta
+//   linha vermelha acima         -> tendencia de baixa
+//   candle verde ou vermelho     -> virada valida
+//   candle cinza                 -> virada barrada por um filtro
+//
+// ANTES DE RODAR O BACKTEST
+//   No painel de Execucao, ajuste a Quantidade para 2.
+//
+// SE O F9 RECLAMAR DAS LINHAS DE ORDEM
+//   Sua versao do NTSL nao aceita quantidade como argumento. Apague o
+//   (2) e o (1) das quatro chamadas, deixando so BuyAtMarket,
+//   SellShortAtMarket, SellToCoverAtMarket e BuyToCoverAtMarket. Nesse
+//   caso a saida parcial deixa de existir: tudo sai de uma vez no alvo
+//   do runner. Me avise, que eu adapto.
+//
+//   Se reclamar de  horaAtual := Time;  troque Time por CurrentTime.
+//=====================================================================
+
+input
+  Amplitude(12);           // janela de maximas e minimas. Maior = menos viradas
+  DesvioCanal(2.0);        // largura do canal, em multiplos de meio ATR
+  PeriodoATR(100);         // periodo do ATR que define o canal
+  FiltroHorario(1);        // 1 = liga o filtro de horario
+  HoraInicio(900);         // formato HHMM
+  HoraFim(1450);           // ultima virada valida. Entrada e no candle seguinte
+  HoraZerar(1740);         // encerra qualquer posicao aberta
+  FiltroVolatilidade(1);   // 1 = liga o filtro de ATR
+  ATRMinimo(200);          // ATR minimo em pontos para o sinal valer
+  PeriodoATRFiltro(14);    // periodo do ATR usado no filtro
+  StopPontos(400);         // stop em pontos
+  AlvoParcial(250);        // alvo do primeiro contrato
+  AlvoRunner(500);         // alvo do segundo contrato
+  UsarZeroAZero(1);        // 1 = stop vai ao zero a zero apos a parcial
+  MaxOperacoesDia(2);      // entradas por pregao
+  AlvoDiaReais(600);       // para de operar ao atingir este lucro no dia
+  ValorPonto(0.20);        // WIN = 0,20. WDO = 10,00
+  Operar(1);               // 0 = so desenha, nao envia ordens
+  MostrarCanal(1);
+  PintarVirada(1);
+  MarcarFiltrados(1);
+
+var
+  i            : integer;
+  ultimaBarra  : integer;
+  iniciado     : boolean;
+  trend        : integer;   // 0 = alta, 1 = baixa
+  trendAnt     : integer;
+  nexttrend    : integer;
+  maxLowPrice  : float;
+  minHighPrice : float;
+  up           : float;
+  down         : float;
+  upAnt        : float;
+  downAnt      : float;
+  somaTR       : float;
+  tr           : float;
+  atr2         : float;
+  atrFiltro    : float;
+  dev          : float;
+  highPrice    : float;
+  lowPrice     : float;
+  somaH        : float;
+  somaL        : float;
+  highma       : float;
+  lowma        : float;
+  linha        : float;
+  horaAtual    : integer;
+  horaAnt      : integer;
+  horaOk       : boolean;
+  volOk        : boolean;
+  virouCompra  : boolean;
+  virouVenda   : boolean;
+  sinalValido  : boolean;
+  opsHoje      : integer;
+  lucroHoje    : float;
+  fezParcial   : boolean;
+  precoEntrada : float;
+  stopAtual    : float;
+  minBarras    : integer;
+
+begin
+  minBarras := PeriodoATR + PeriodoATRFiltro + Amplitude + 3;
+
+  if (CurrentBar < minBarras) then
+  begin
+    PlotN(1, Close);
+    PlotN(2, Close);
+    PlotN(3, Close);
+  end
+  else
+  begin
+    horaAtual := Time;
+
+    //-----------------------------------------------------------------
+    // Virada de dia: zera os contadores.
+    // Detectada quando a hora anda para tras, porque o NTSL nao expoe
+    // a data diretamente.
+    //-----------------------------------------------------------------
+    if (horaAtual < horaAnt) then
+    begin
+      opsHoje   := 0;
+      lucroHoje := 0;
+    end;
+    horaAnt := horaAtual;
+
+    //-----------------------------------------------------------------
+    // A maquina de estado so pode avancar UMA VEZ por barra.
+    // Sem esta trava, cada tick da barra em formacao avancaria o
+    // estado de novo e corromperia a sequencia.
+    //-----------------------------------------------------------------
+    if (CurrentBar <> ultimaBarra) then
+    begin
+      ultimaBarra := CurrentBar;
+
+      //--- meio ATR, que define a largura do canal
+      somaTR := 0;
+      for i := 0 to (PeriodoATR - 1) do
+      begin
+        tr := High[i] - Low[i];
+        if (Abs(High[i] - Close[i + 1]) > tr) then
+          tr := Abs(High[i] - Close[i + 1]);
+        if (Abs(Low[i] - Close[i + 1]) > tr) then
+          tr := Abs(Low[i] - Close[i + 1]);
+        somaTR := somaTR + tr;
+      end;
+      atr2 := (somaTR / PeriodoATR) / 2;
+      dev  := DesvioCanal * atr2;
+
+      //--- ATR curto, usado so no filtro de volatilidade
+      somaTR := 0;
+      for i := 0 to (PeriodoATRFiltro - 1) do
+      begin
+        tr := High[i] - Low[i];
+        if (Abs(High[i] - Close[i + 1]) > tr) then
+          tr := Abs(High[i] - Close[i + 1]);
+        if (Abs(Low[i] - Close[i + 1]) > tr) then
+          tr := Abs(Low[i] - Close[i + 1]);
+        somaTR := somaTR + tr;
+      end;
+      atrFiltro := somaTR / PeriodoATRFiltro;
+
+      //--- maior maxima, menor minima e medias na janela da amplitude
+      highPrice := High[0];
+      lowPrice  := Low[0];
+      somaH     := 0;
+      somaL     := 0;
+      for i := 0 to (Amplitude - 1) do
+      begin
+        if (High[i] > highPrice) then highPrice := High[i];
+        if (Low[i]  < lowPrice)  then lowPrice  := Low[i];
+        somaH := somaH + High[i];
+        somaL := somaL + Low[i];
+      end;
+      highma := somaH / Amplitude;
+      lowma  := somaL / Amplitude;
+
+      //--- primeira barra calculavel: semeia o estado
+      if (not iniciado) then
+      begin
+        iniciado     := true;
+        trend        := 0;
+        nexttrend    := 0;
+        maxLowPrice  := Low[0];
+        minHighPrice := High[0];
+        up           := lowPrice;
+        down         := highPrice;
+      end;
+
+      trendAnt := trend;
+      upAnt    := up;
+      downAnt  := down;
+
+      //--- avalia a virada, sempre, sem filtro nenhum
+      if (nexttrend = 1) then
+      begin
+        if (lowPrice > maxLowPrice) then
+          maxLowPrice := lowPrice;
+        if ((highma < maxLowPrice) and (Close < Low[1])) then
+        begin
+          trend        := 1;
+          nexttrend    := 0;
+          minHighPrice := highPrice;
+        end;
+      end
+      else
+      begin
+        if (highPrice < minHighPrice) then
+          minHighPrice := highPrice;
+        if ((lowma > minHighPrice) and (Close > High[1])) then
+        begin
+          trend       := 0;
+          nexttrend   := 1;
+          maxLowPrice := lowPrice;
+        end;
+      end;
+
+      //--- posiciona a linha
+      virouCompra := false;
+      virouVenda  := false;
+
+      if (trend = 0) then
+      begin
+        if (trendAnt = 1) then
+        begin
+          up := downAnt;
+          virouCompra := true;
+        end
+        else
+        begin
+          if (maxLowPrice > upAnt) then up := maxLowPrice else up := upAnt;
+        end;
+        linha := up;
+      end
+      else
+      begin
+        if (trendAnt = 0) then
+        begin
+          down := upAnt;
+          virouVenda := true;
+        end
+        else
+        begin
+          if (minHighPrice < downAnt) then down := minHighPrice else down := downAnt;
+        end;
+        linha := down;
+      end;
+
+      //-----------------------------------------------------------------
+      // FILTROS
+      // Barram apenas o sinal. O estado acima ja foi atualizado: se ele
+      // parasse fora do horario, o regime se perderia e a linha ficaria
+      // errada no dia seguinte.
+      //-----------------------------------------------------------------
+      horaOk := true;
+      if (FiltroHorario = 1) then
+        horaOk := (horaAtual >= HoraInicio) and (horaAtual <= HoraFim);
+
+      volOk := true;
+      if (FiltroVolatilidade = 1) then
+        volOk := (atrFiltro >= ATRMinimo);
+
+      sinalValido := horaOk and volOk;
+    end;
+
+    //-----------------------------------------------------------------
+    // DESENHO
+    //-----------------------------------------------------------------
+    PlotN(1, linha);
+    if (trend = 0) then
+      SetPlotColor(1, clLime)
+    else
+      SetPlotColor(1, clRed);
+
+    if (MostrarCanal = 1) then
+    begin
+      PlotN(2, linha + dev);
+      PlotN(3, linha - dev);
+      SetPlotColor(2, clGray);
+      SetPlotColor(3, clGray);
+    end
+    else
+    begin
+      PlotN(2, linha);
+      PlotN(3, linha);
+    end;
+
+    if (PintarVirada = 1) then
+    begin
+      if (virouCompra) then
+      begin
+        if (sinalValido) then
+          PaintBar(clLime)
+        else if (MarcarFiltrados = 1) then
+          PaintBar(clGray);
+      end
+      else if (virouVenda) then
+      begin
+        if (sinalValido) then
+          PaintBar(clRed)
+        else if (MarcarFiltrados = 1) then
+          PaintBar(clGray);
+      end;
+    end;
+
+    //-----------------------------------------------------------------
+    // ORDENS
+    //-----------------------------------------------------------------
+    if (Operar = 1) then
+    begin
+      if (IsBought) then
+      begin
+        if (horaAtual >= HoraZerar) then
+          SellToCoverAtMarket(2)
+        else
+        begin
+          if (Low <= stopAtual) then
+          begin
+            SellToCoverAtMarket(2);
+            lucroHoje := lucroHoje + ((stopAtual - precoEntrada) * 2 * ValorPonto);
+          end
+          else
+          begin
+            if (not fezParcial) then
+            begin
+              if (High >= (precoEntrada + AlvoParcial)) then
+              begin
+                SellToCoverAtMarket(1);
+                fezParcial := true;
+                lucroHoje  := lucroHoje + (AlvoParcial * ValorPonto);
+                if (UsarZeroAZero = 1) then
+                  stopAtual := precoEntrada;
+              end;
+            end
+            else
+            begin
+              if (High >= (precoEntrada + AlvoRunner)) then
+              begin
+                SellToCoverAtMarket(1);
+                lucroHoje := lucroHoje + (AlvoRunner * ValorPonto);
+              end;
+            end;
+          end;
+        end;
+      end
+      else if (IsSold) then
+      begin
+        if (horaAtual >= HoraZerar) then
+          BuyToCoverAtMarket(2)
+        else
+        begin
+          if (High >= stopAtual) then
+          begin
+            BuyToCoverAtMarket(2);
+            lucroHoje := lucroHoje + ((precoEntrada - stopAtual) * 2 * ValorPonto);
+          end
+          else
+          begin
+            if (not fezParcial) then
+            begin
+              if (Low <= (precoEntrada - AlvoParcial)) then
+              begin
+                BuyToCoverAtMarket(1);
+                fezParcial := true;
+                lucroHoje  := lucroHoje + (AlvoParcial * ValorPonto);
+                if (UsarZeroAZero = 1) then
+                  stopAtual := precoEntrada;
+              end;
+            end
+            else
+            begin
+              if (Low <= (precoEntrada - AlvoRunner)) then
+              begin
+                BuyToCoverAtMarket(1);
+                lucroHoje := lucroHoje + (AlvoRunner * ValorPonto);
+              end;
+            end;
+          end;
+        end;
+      end
+      else
+      begin
+        //-------------------------------------------------------------
+        // Sem posicao: avalia entrada
+        //-------------------------------------------------------------
+        if (sinalValido) then
+        begin
+          if (opsHoje < MaxOperacoesDia) then
+          begin
+            if (lucroHoje < AlvoDiaReais) then
+            begin
+              if (virouCompra) then
+              begin
+                BuyAtMarket(2);
+                precoEntrada := Close;
+                stopAtual    := Close - StopPontos;
+                fezParcial   := false;
+                opsHoje      := opsHoje + 1;
+              end
+              else if (virouVenda) then
+              begin
+                SellShortAtMarket(2);
+                precoEntrada := Close;
+                stopAtual    := Close + StopPontos;
+                fezParcial   := false;
+                opsHoje      := opsHoje + 1;
+              end;
+            end;
+          end;
+        end;
+      end;
+    end;
+  end;
+end;
