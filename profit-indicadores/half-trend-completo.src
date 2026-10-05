@@ -61,10 +61,19 @@ input
   HoraFim(1450);           // ultima virada valida. Entrada e no candle seguinte
   HoraZerar(1740);         // encerra qualquer posicao aberta
   FiltroVolatilidade(1);   // 1 = liga o filtro de ATR
-  ATRMinimo(200);          // ATR minimo em pontos para o sinal valer
+  ATRMinimo(100);          // ATR minimo em pontos para o sinal valer.
+                           // Era 200 quando o runner saia em alvo fixo: em
+                           // mercado parado o alvo nao era alcancavel. Com a
+                           // saida pela virada esse motivo sumiu, e 200 so
+                           // cortava sinal: 0,92 por dia contra 1,01, mesmo
+                           // acerto de 62% e R$64 por operacao contra R$69
   PeriodoATRFiltro(14);    // periodo do ATR usado no filtro
   FiltroVolume(1);         // 1 = liga o filtro de volume
-  VolumeMaximo(1.0);       // volume da barra / media. Acima disso o sinal nao vale
+  VolumeMaximo(1.0);       // volume da barra / media. Acima disso o sinal nao vale.
+                           // 1.0 e o ponto certo, nao e "quanto menor melhor":
+                           // desligado da 58% de acerto e 21% de eliminacao,
+                           // em 1.0 da 62% e 2%, e apertando para 0.8 piora
+                           // para 60% e 17%
   PeriodoVolume(20);       // quantas barras entram na media de volume
   FiltroRompimento(0);     // 1 = aceita tambem entrada por rompimento, alem da
                            //     virada da linha. Desligado por padrao: dobra
@@ -322,10 +331,14 @@ begin
       // Contra-intuitivo de proposito: o sinal vale quando o volume da
       // barra da virada esta ABAIXO da media recente.
       //
-      // Medido em 173 pregoes: virada com volume abaixo de 0,8x a media
-      // acerta 79%; acima de 1,3x, 58%. O HalfTrend e seguidor de
-      // tendencia, e virada com volume alto costuma ser climax, com o
-      // movimento ja esgotado. Virada silenciosa ainda tem caminho.
+      // O HalfTrend e seguidor de tendencia, e virada com volume alto
+      // costuma ser climax, com o movimento ja esgotado. Virada
+      // silenciosa ainda tem caminho.
+      //
+      // Medido em 173 pregoes com a estrutura atual: sem o filtro sao 58%
+      // de acerto e 21% de eliminacao na metade dificil da amostra; com
+      // VolumeMaximo 1.0 sao 62% e 2%. Apertar nao melhora -- em 0.8 cai
+      // para 60% e 17%. O otimo e 1.0, nao e quanto menor melhor.
       //
       // A media usa apenas barras do pregao corrente, porque o volume
       // da abertura e do fechamento distorce a comparacao.
