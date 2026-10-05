@@ -13,12 +13,22 @@
 //   runner    ContratosRunner seguem ate a linha virar contra a posicao
 //             (SaidaPelaVirada = 1) ou ate AlvoRunner (= 0).
 //
-// Calibragem: 173 pregoes de WIN em 5 min, avaliacao da mesa simulada
-// comecando em cada pregao da amostra. Amplitude 4 com saida pela virada
-// deu 0,92 sinais por dia contra 0,53 da Amplitude 12 com alvo fixo,
-// mantendo a chance de aprovacao (98% na primeira metade da amostra e
-// 77% na segunda, contra 97% e 81%). Amplitude 2 e despenhadeiro:
-// a eliminacao sobe para 77% na primeira metade. Nao reduza abaixo de 3.
+// Calibragem: 173 pregoes de WIN em 5 min. A avaliacao da mesa foi
+// simulada comecando em CADA pregao da amostra, nao num caminho so, e
+// medida por familia de parametros em vez de valor isolado, porque em
+// 173 pregoes um valor isolado oscila muito.
+//
+// Familia Amplitude 3-4 + stop 275-310 + saida pela virada:
+//   cerca de 1 sinal por dia, aprovacao 81-98% na primeira metade da
+//   amostra e 80-100% na segunda, meta em 15 pregoes na mediana.
+// Familia anterior, Amplitude 10-12 + stop 375-425 + alvo fixo:
+//   cerca de 0,5 sinal por dia, aprovacao 93-100% e 40-84%, 20 pregoes.
+//
+// Ou seja: o dobro de sinais com chance de aprovacao equivalente. Mas o
+// pior caso piora -- a eliminacao na primeira metade chega a 19% nesta
+// familia contra 7% na anterior.
+//
+// Amplitude 2 e despenhadeiro: 67% de eliminacao. Nao reduza abaixo de 3.
 //   stop      StopPontos, e vai para o zero a zero depois da parcial
 //   dia       encerra tudo em HoraZerar, maximo MaxOperacoesDia entradas,
 //             para de operar ao atingir AlvoDiaReais
@@ -56,7 +66,8 @@ input
   FiltroVolume(1);         // 1 = liga o filtro de volume
   VolumeMaximo(1.0);       // volume da barra / media. Acima disso o sinal nao vale
   PeriodoVolume(20);       // quantas barras entram na media de volume
-  StopPontos(250);         // stop em pontos
+  StopPontos(300);         // stop em pontos. Faixa estavel medida: 275 a 310.
+                           // Abaixo de 260 a eliminacao na mesa sobe muito
   ContratosParcial(2);     // contratos que saem no AlvoParcial
   ContratosRunner(2);      // contratos que seguem no runner
   AlvoParcial(250);        // alvo dos contratos da parcial
