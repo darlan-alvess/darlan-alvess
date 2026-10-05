@@ -497,6 +497,7 @@ begin
           entradaArmada := false;
           precoEntrada  := BuyPrice;
           stopAtual     := BuyPrice - StopPontos;
+          opsHoje       := opsHoje + 1;
         end;
 
         if (horaAtual >= HoraZerar) then
@@ -561,6 +562,7 @@ begin
           entradaArmada := false;
           precoEntrada  := SellPrice;
           stopAtual     := SellPrice + StopPontos;
+          opsHoje       := opsHoje + 1;
         end;
 
         if (horaAtual >= HoraZerar) then
@@ -637,9 +639,15 @@ begin
                 // O preco de entrada NAO e definido aqui. A ordem executa
                 // na abertura do candle seguinte, e so la o preenchimento
                 // real existe. Fixar Close aqui desloca stop e alvos.
+                //
+                // opsHoje tambem NAO e incrementado aqui. No backtest real
+                // de 67 pregoes apareceram 27 operacoes que abrem e fecham
+                // no mesmo instante e no mesmo preco, com resultado zero.
+                // Contadas no envio da ordem, elas queimavam uma das tres
+                // vagas do dia e bloqueavam sinais de verdade. Agora a vaga
+                // so e gasta quando a posicao realmente abre, abaixo.
                 entradaArmada := true;
                 fezParcial    := false;
-                opsHoje       := opsHoje + 1;
               end;
             end;
           end;
