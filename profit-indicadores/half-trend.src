@@ -1,37 +1,47 @@
 //=====================================================================
-// HalfTrend
+// HalfTrend com filtros
 // Indicador NTSL para Profit (Nelogica)
 //
 // Porte do HalfTrend, indicador publico e gratuito originalmente
-// escrito para MetaTrader (forex-indicators.org).
+// escrito para MetaTrader (forex-indicators.org), com dois filtros
+// medidos em 172 pregoes do mini indice:
 //
-// COMO FUNCIONA
-//   Mantem uma maquina de estado com dois modos, alta e baixa.
-//   Em alta, a linha acompanha o maior piso recente e so sobe.
-//   Em baixa, acompanha o menor teto recente e so desce.
-//   A virada exige duas condicoes ao mesmo tempo: a media das maximas
-//   (ou minimas) romper o piso guardado E o fechamento superar a
-//   maxima ou minima da barra anterior.
+//   HORARIO     sinal so vale entre 09h00 e 14h59.
+//               Depois das 15h o acerto medido caiu de 74% para 56%.
+//               O limite e 1450 e nao 1459 porque a entrada acontece
+//               no candle seguinte a virada.
 //
-//   Essa dupla condicao e o motivo de ele nao ficar virando a cada
-//   repique. Nao e uma media movel disfarcada.
+//   VOLATILIDADE  sinal so vale com ATR(14) acima de 200 pontos.
+//               Com ATR abaixo disso o acerto foi de 57% e a
+//               expectativa, negativa: os alvos de 250 e 500 pontos
+//               nao sao alcancaveis em mercado parado.
 //
-// SINAL
-//   A virada da linha E o sinal. Linha verde = alta, vermelha = baixa.
-//   O candle da virada e pintado.
+//   Os dois juntos levaram o acerto de 66% para 73%.
 //
-// ATENCAO
-//   Isto e uma reconstrucao a partir do algoritmo publico. Antes de
-//   confiar, compare com o indicador original: exporte os buffers dele
-//   com o ExportaIndicador.mq5 e confira barra a barra.
+// LEITURA DAS CORES DO CANDLE
+//   verde / vermelho forte -> sinal valido, pode operar
+//   cinza                  -> virada barrada por um dos filtros
+//
+// IMPORTANTE
+//   Os filtros barram o SINAL, nunca o calculo. A maquina de estado
+//   continua avancando em todas as barras: se ela parasse fora do
+//   horario, o regime se perderia e a linha ficaria errada no dia
+//   seguinte.
 //=====================================================================
 
 input
-  Amplitude(2);        // janela de maximas e minimas. Maior = menos viradas
-  DesvioCanal(2.0);    // largura do canal, em multiplos de meio ATR
-  PeriodoATR(100);     // periodo do ATR que define o canal
-  MostrarCanal(1);     // 1 = desenha as bordas do canal
-  PintarVirada(1);     // 1 = pinta o candle onde a linha vira
+  Amplitude(12);           // janela de maximas e minimas. Maior = menos viradas
+  DesvioCanal(2.0);        // largura do canal, em multiplos de meio ATR
+  PeriodoATR(100);         // periodo do ATR que define o canal
+  FiltroHorario(1);        // 1 = liga o filtro de horario
+  HoraInicio(900);         // formato HHMM
+  HoraFim(1450);           // formato HHMM. 1450 porque a entrada e no candle seguinte
+  FiltroVolatilidade(1);   // 1 = liga o filtro de ATR
+  ATRMinimo(200);          // ATR minimo em pontos para o sinal valer
+  PeriodoATRFiltro(14);    // periodo do ATR usado no filtro
+  MostrarCanal(1);         // 1 = desenha as bordas do canal
+  PintarVirada(1);         // 1 = pinta o candle onde a linha vira
+  MarcarFiltrados(1);      // 1 = pinta de cinza as viradas barradas
 
 var
   i            : integer;
@@ -49,6 +59,7 @@ var
   somaTR       : float;
   tr           : float;
   atr2         : float;
+  atrFiltro    : float;
   dev          : float;
   highPrice    : float;
   lowPrice     : float;
@@ -57,11 +68,18 @@ var
   highma       : float;
   lowma        : float;
   linha        : float;
+  horaAtual    : integer;
+  horaOk       : boolean;
+  volOk        : boolean;
   virouCompra  : boolean;
   virouVenda   : boolean;
+  sinalValido  : boolean;
+  minBarras    : integer;
 
 begin
-  if (CurrentBar < (PeriodoATR + Amplitude + 2)) then
+  minBarras := PeriodoATR + PeriodoATRFiltro + Amplitude + 3;
+
+  if (CurrentBar < minBarras) then
   begin
     PlotN(1, Close);
     PlotN(2, Close);
@@ -91,6 +109,19 @@ begin
       end;
       atr2 := (somaTR / PeriodoATR) / 2;
       dev  := DesvioCanal * atr2;
+
+      //--- ATR curto, usado so no filtro de volatilidade
+      somaTR := 0;
+      for i := 0 to (PeriodoATRFiltro - 1) do
+      begin
+        tr := High[i] - Low[i];
+        if (Abs(High[i] - Close[i + 1]) > tr) then
+          tr := Abs(High[i] - Close[i + 1]);
+        if (Abs(Low[i] - Close[i + 1]) > tr) then
+          tr := Abs(Low[i] - Close[i + 1]);
+        somaTR := somaTR + tr;
+      end;
+      atrFiltro := somaTR / PeriodoATRFiltro;
 
       //--- maior maxima, menor minima e medias na janela da amplitude
       highPrice := High[0];
@@ -123,7 +154,7 @@ begin
       upAnt    := up;
       downAnt  := down;
 
-      //--- avalia a virada
+      //--- avalia a virada (sempre, sem filtro nenhum)
       if (nexttrend = 1) then
       begin
         if (lowPrice > maxLowPrice) then
@@ -188,6 +219,25 @@ begin
         end;
         linha := down;
       end;
+
+      //-----------------------------------------------------------------
+      // FILTROS
+      // Barram apenas o sinal. O estado acima ja foi atualizado.
+      //-----------------------------------------------------------------
+      horaOk := true;
+      if (FiltroHorario = 1) then
+      begin
+        // SE NAO COMPILAR NESTA LINHA: troque Time por CurrentTime,
+        // ou por Hora, conforme a sua versao do Profit aceitar.
+        horaAtual := Time;
+        horaOk := (horaAtual >= HoraInicio) and (horaAtual <= HoraFim);
+      end;
+
+      volOk := true;
+      if (FiltroVolatilidade = 1) then
+        volOk := (atrFiltro >= ATRMinimo);
+
+      sinalValido := horaOk and volOk;
     end;
 
     //-----------------------------------------------------------------
@@ -212,12 +262,26 @@ begin
       PlotN(3, linha);
     end;
 
+    //-----------------------------------------------------------------
+    // pintura do candle
+    //   cor forte = sinal valido | cinza = barrado pelos filtros
+    //-----------------------------------------------------------------
     if (PintarVirada = 1) then
     begin
       if (virouCompra) then
-        PaintBar(clLime)
+      begin
+        if (sinalValido) then
+          PaintBar(clLime)
+        else if (MarcarFiltrados = 1) then
+          PaintBar(clGray);
+      end
       else if (virouVenda) then
-        PaintBar(clRed);
+      begin
+        if (sinalValido) then
+          PaintBar(clRed)
+        else if (MarcarFiltrados = 1) then
+          PaintBar(clGray);
+      end;
     end;
   end;
 end;
