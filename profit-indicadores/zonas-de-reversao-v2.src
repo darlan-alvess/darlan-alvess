@@ -1,0 +1,266 @@
+//=====================================================================
+// Zonas de Reversao v2
+// Indicador NTSL para Profit (Nelogica)
+//
+// Evolucao da v1. O que mudou:
+//   1) O sinal e avaliado na barra FECHADA, entao nao repinta.
+//   2) Filtro de tendencia por media longa.
+//   3) Confirmacao por rejeicao (pavio contra a zona + fechamento de volta).
+//   4) Um sinal por visita a zona, em vez de um por candle.
+//   5) Nota de 0 a 3 no sinal, codificada na cor do candle.
+//
+// LEITURA DAS CORES:
+//   verde claro  / vermelho vivo  -> nota 3 (sinal forte)
+//   verde escuro / vermelho escuro -> nota 2 (sinal mediano)
+//
+// IMPORTANTE: com BarraFechada = 1 o candle pintado e o candle de
+// ENTRADA. O sinal nasceu no fechamento do candle anterior.
+//=====================================================================
+
+input
+  PeriodoMedia(20);        // media central das zonas
+  PeriodoATR(14);          // periodo do ATR (largura das zonas)
+  MultInterno(2.0);        // borda interna da zona (gatilho)
+  MultExterno(3.0);        // borda externa da zona (extremo)
+  PeriodoTendencia(200);   // media longa usada como filtro de tendencia
+  FiltroTendencia(1);      // 1 = so opera a favor da tendencia de fundo
+  ExigeRejeicao(1);        // 1 = exige pavio contra a zona e fechamento de volta
+  PavioMinimo(0.5);        // pavio minimo exigido, em multiplos do corpo
+  BarrasRearme(8);         // barras sem novo sinal apos um sinal na mesma zona
+  BarraFechada(1);         // 1 = avalia a barra fechada (nao repinta)
+  NotaMinima(2);           // nota minima para o sinal valer (0 a 3)
+  PintarCandle(1);         // 1 = pinta o candle no sinal
+
+var
+  d         : integer;
+  i         : integer;
+  minBarras : integer;
+  soma      : float;
+  media     : float;
+  tend      : float;
+  tr        : float;
+  somaTR    : float;
+  atr       : float;
+  supInt    : float;
+  supExt    : float;
+  infInt    : float;
+  infExt    : float;
+  meioSup   : float;
+  meioInf   : float;
+  corpo     : float;
+  topoCorpo : float;
+  baseCorpo : float;
+  pavioSup  : float;
+  pavioInf  : float;
+  compra    : boolean;
+  venda     : boolean;
+  primeiroC : boolean;
+  primeiroV : boolean;
+  notaC     : integer;
+  notaV     : integer;
+
+begin
+  // deslocamento da barra avaliada: 1 = ultima fechada, 0 = em formacao
+  if (BarraFechada = 1) then
+    d := 1
+  else
+    d := 0;
+
+  minBarras := PeriodoMedia + PeriodoTendencia + PeriodoATR + BarrasRearme + d + 2;
+
+  if (CurrentBar < minBarras) then
+  begin
+    PlotN(1, Close);
+    PlotN(2, Close);
+    PlotN(3, Close);
+    PlotN(4, Close);
+    PlotN(5, Close);
+  end
+  else
+  begin
+    //-----------------------------------------------------------------
+    // 1) media central, calculada na mao no deslocamento d
+    //    (media simples: nao depende de estado entre barras)
+    //-----------------------------------------------------------------
+    soma := 0;
+    for i := d to (d + PeriodoMedia - 1) do
+      soma := soma + Close[i];
+    media := soma / PeriodoMedia;
+
+    //-----------------------------------------------------------------
+    // 2) media de tendencia, mesmo deslocamento
+    //-----------------------------------------------------------------
+    soma := 0;
+    for i := d to (d + PeriodoTendencia - 1) do
+      soma := soma + Close[i];
+    tend := soma / PeriodoTendencia;
+
+    //-----------------------------------------------------------------
+    // 3) ATR
+    //-----------------------------------------------------------------
+    somaTR := 0;
+    for i := d to (d + PeriodoATR - 1) do
+    begin
+      tr := High[i] - Low[i];
+      if (Abs(High[i] - Close[i + 1]) > tr) then
+        tr := Abs(High[i] - Close[i + 1]);
+      if (Abs(Low[i] - Close[i + 1]) > tr) then
+        tr := Abs(Low[i] - Close[i + 1]);
+      somaTR := somaTR + tr;
+    end;
+    atr := somaTR / PeriodoATR;
+
+    //-----------------------------------------------------------------
+    // 4) bordas das zonas
+    //-----------------------------------------------------------------
+    supInt  := media + (MultInterno * atr);
+    supExt  := media + (MultExterno * atr);
+    infInt  := media - (MultInterno * atr);
+    infExt  := media - (MultExterno * atr);
+    meioSup := media + (((MultInterno + MultExterno) / 2) * atr);
+    meioInf := media - (((MultInterno + MultExterno) / 2) * atr);
+
+    //-----------------------------------------------------------------
+    // 5) anatomia do candle avaliado
+    //-----------------------------------------------------------------
+    corpo := Abs(Close[d] - Open[d]);
+    if (Close[d] > Open[d]) then
+    begin
+      topoCorpo := Close[d];
+      baseCorpo := Open[d];
+    end
+    else
+    begin
+      topoCorpo := Open[d];
+      baseCorpo := Close[d];
+    end;
+    pavioSup := High[d] - topoCorpo;
+    pavioInf := baseCorpo - Low[d];
+
+    //-----------------------------------------------------------------
+    // 6) gatilho bruto: o preco entrou na zona
+    //-----------------------------------------------------------------
+    compra := (Low[d]  <= infInt);
+    venda  := (High[d] >= supInt);
+
+    //-----------------------------------------------------------------
+    // 7) confirmacao por rejeicao
+    //    O candle precisa ter sido empurrado de volta para dentro.
+    //-----------------------------------------------------------------
+    if (ExigeRejeicao = 1) then
+    begin
+      compra := compra and (Close[d] > infInt) and (pavioInf >= (PavioMinimo * corpo));
+      venda  := venda  and (Close[d] < supInt) and (pavioSup >= (PavioMinimo * corpo));
+    end;
+
+    //-----------------------------------------------------------------
+    // 8) um sinal por visita a zona
+    //    Se o preco ja esteve na zona nas ultimas BarrasRearme barras,
+    //    este nao e o primeiro toque e o sinal nao vale.
+    //    Usa a borda atual como referencia das barras anteriores: a
+    //    banda se move devagar e isso evita recalcular tudo barra a barra.
+    //-----------------------------------------------------------------
+    primeiroC := true;
+    primeiroV := true;
+    for i := (d + 1) to (d + BarrasRearme) do
+    begin
+      if (Low[i]  <= infInt) then
+        primeiroC := false;
+      if (High[i] >= supInt) then
+        primeiroV := false;
+    end;
+    compra := compra and primeiroC;
+    venda  := venda  and primeiroV;
+
+    //-----------------------------------------------------------------
+    // 9) filtro de tendencia
+    //    Compra so em correcao dentro de alta, venda so em repique
+    //    dentro de baixa. Evita comprar faca caindo.
+    //-----------------------------------------------------------------
+    if (FiltroTendencia = 1) then
+    begin
+      compra := compra and (Close[d] > tend);
+      venda  := venda  and (Close[d] < tend);
+    end;
+
+    //-----------------------------------------------------------------
+    // 10) nota do sinal (0 a 3)
+    //     +1 profundidade: passou do meio da zona
+    //     +1 rejeicao forte: pavio maior ou igual ao corpo
+    //     +1 alinhamento com a tendencia de fundo
+    //-----------------------------------------------------------------
+    notaC := 0;
+    notaV := 0;
+
+    if (Low[d]  <= meioInf) then notaC := notaC + 1;
+    if (High[d] >= meioSup) then notaV := notaV + 1;
+
+    if (corpo = 0) then
+    begin
+      // doji dentro da zona: rejeicao pura
+      notaC := notaC + 1;
+      notaV := notaV + 1;
+    end
+    else
+    begin
+      if (pavioInf >= corpo) then notaC := notaC + 1;
+      if (pavioSup >= corpo) then notaV := notaV + 1;
+    end;
+
+    if (Close[d] > tend) then notaC := notaC + 1;
+    if (Close[d] < tend) then notaV := notaV + 1;
+
+    compra := compra and (notaC >= NotaMinima);
+    venda  := venda  and (notaV >= NotaMinima);
+
+    //-----------------------------------------------------------------
+    // OPCIONAL: filtro de horario.
+    // A funcao de hora muda de nome entre versoes do Profit, por isso
+    // fica comentada. Se o seu Profit aceitar Time, descomente e o
+    // indicador para de sinalizar fora da janela.
+    //
+    // if (Time < 0915) or (Time > 1700) then
+    // begin
+    //   compra := false;
+    //   venda  := false;
+    // end;
+    //-----------------------------------------------------------------
+
+    //-----------------------------------------------------------------
+    // 11) pintura do candle de entrada
+    //-----------------------------------------------------------------
+    if (PintarCandle = 1) then
+    begin
+      if (compra) then
+      begin
+        if (notaC >= 3) then
+          PaintBar(clLime)
+        else
+          PaintBar(clGreen);
+      end
+      else if (venda) then
+      begin
+        if (notaV >= 3) then
+          PaintBar(clRed)
+        else
+          PaintBar(clMaroon);
+      end;
+    end;
+
+    //-----------------------------------------------------------------
+    // 12) plotagem
+    //-----------------------------------------------------------------
+    PlotN(1, supExt);   // borda externa superior
+    PlotN(2, supInt);   // borda interna superior
+    PlotN(3, infInt);   // borda interna inferior
+    PlotN(4, infExt);   // borda externa inferior
+    PlotN(5, tend);     // media de tendencia
+
+    SetPlotColor(1, clRed);
+    SetPlotColor(2, clRed);
+    SetPlotColor(3, clLime);
+    SetPlotColor(4, clLime);
+    SetPlotColor(5, clGray);
+
+  end;
+end;

@@ -1,0 +1,122 @@
+//=====================================================================
+// Zonas de Reversao
+// Indicador NTSL para Profit (Nelogica)
+//
+// Desenha duas zonas de volatilidade em torno de uma media:
+//   - zona superior (vermelha)  -> regiao de exaustao de alta / venda
+//   - zona inferior (verde)     -> regiao de exaustao de baixa / compra
+//
+// Pinta o candle quando o preco entra na zona:
+//   - verde    -> sinal de compra
+//   - vermelho -> sinal de venda
+//=====================================================================
+
+input
+  PeriodoMedia(20);        // periodo da media central
+  TipoMedia(1);            // 0 = simples, 1 = exponencial
+  PeriodoATR(14);          // periodo do ATR (largura da zona)
+  MultInterno(2.0);        // multiplicador da borda interna da zona
+  MultExterno(3.0);        // multiplicador da borda externa da zona
+  ConfirmaFechamento(0);   // 0 = sinal no toque, 1 = exige fechamento de volta
+  PintarCandle(1);         // 1 = pinta o candle no sinal
+
+var
+  media   : float;
+  tr      : float;
+  somaTR  : float;
+  atr     : float;
+  i       : integer;
+  supInt  : float;
+  supExt  : float;
+  infInt  : float;
+  infExt  : float;
+  compra  : boolean;
+  venda   : boolean;
+
+begin
+  // sem barras suficientes: nao calcula nada
+  if (CurrentBar < (PeriodoMedia + PeriodoATR)) then
+  begin
+    PlotN(1, Close);
+    PlotN(2, Close);
+    PlotN(3, Close);
+    PlotN(4, Close);
+  end
+  else
+  begin
+    //-----------------------------------------------------------------
+    // 1) media central
+    //-----------------------------------------------------------------
+    if (TipoMedia = 0) then
+      media := Media(PeriodoMedia, Close)
+    else
+      media := MediaExp(PeriodoMedia, Close);
+
+    //-----------------------------------------------------------------
+    // 2) ATR calculado na mao (nao depende de funcao interna)
+    //-----------------------------------------------------------------
+    somaTR := 0;
+    for i := 0 to (PeriodoATR - 1) do
+    begin
+      tr := High[i] - Low[i];
+      if (Abs(High[i] - Close[i + 1]) > tr) then
+        tr := Abs(High[i] - Close[i + 1]);
+      if (Abs(Low[i] - Close[i + 1]) > tr) then
+        tr := Abs(Low[i] - Close[i + 1]);
+      somaTR := somaTR + tr;
+    end;
+    atr := somaTR / PeriodoATR;
+
+    //-----------------------------------------------------------------
+    // 3) bordas das zonas
+    //-----------------------------------------------------------------
+    supInt := media + (MultInterno * atr);
+    supExt := media + (MultExterno * atr);
+    infInt := media - (MultInterno * atr);
+    infExt := media - (MultExterno * atr);
+
+    //-----------------------------------------------------------------
+    // 4) sinais
+    //-----------------------------------------------------------------
+    compra := (Low  <= infInt);
+    venda  := (High >= supInt);
+
+    if (ConfirmaFechamento = 1) then
+    begin
+      compra := compra and (Close > infInt);
+      venda  := venda  and (Close < supInt);
+    end;
+
+    //-----------------------------------------------------------------
+    // 5) pintura do candle
+    //-----------------------------------------------------------------
+    if (PintarCandle = 1) then
+    begin
+      if (compra) then
+        PaintBar(clLime)
+      else if (venda) then
+        PaintBar(clRed);
+    end;
+
+    //-----------------------------------------------------------------
+    // 6) plotagem das zonas
+    //-----------------------------------------------------------------
+    PlotN(1, supExt);   // borda externa superior
+    PlotN(2, supInt);   // borda interna superior
+    PlotN(3, infInt);   // borda interna inferior
+    PlotN(4, infExt);   // borda externa inferior
+
+    SetPlotColor(1, clRed);
+    SetPlotColor(2, clRed);
+    SetPlotColor(3, clLime);
+    SetPlotColor(4, clLime);
+
+    //-----------------------------------------------------------------
+    // OPCIONAL: letras C / V acima e abaixo do candle.
+    // A assinatura do PlotText muda entre versoes do Profit.
+    // Se quiser usar, descomente e ajuste se der erro de compilacao.
+    //-----------------------------------------------------------------
+    // if (compra) then PlotText("C", clLime, 1, 10);
+    // if (venda)  then PlotText("V", clRed,  0, 10);
+  end;
+end;
