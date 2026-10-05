@@ -52,7 +52,8 @@ input
   AlvoParcial(250);        // alvo do primeiro contrato
   AlvoRunner(500);         // alvo do segundo contrato
   UsarZeroAZero(1);        // 1 = stop vai ao zero a zero apos a parcial
-  MaxOperacoesDia(2);      // entradas por pregao
+  MaxOperacoesDia(3);      // entradas por pregao. 3 mede melhor que 2: nos poucos
+                           // dias com varios sinais, o terceiro tambem e bom
   AlvoDiaReais(600);       // para de operar ao atingir este lucro no dia
   ValorPonto(0.20);        // WIN = 0,20. WDO = 10,00
   Operar(0);               // 0 = so desenha (sem setas) | 1 = envia ordens, para o Backtest
