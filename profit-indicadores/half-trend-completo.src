@@ -10,7 +10,15 @@
 //   filtros   so entre HoraInicio e HoraFim, e so com ATR acima do minimo
 //   posicao   2 contratos
 //   parcial   1 contrato sai em +AlvoParcial pontos
-//   runner    1 contrato sai em +AlvoRunner pontos
+//   runner    ContratosRunner seguem ate a linha virar contra a posicao
+//             (SaidaPelaVirada = 1) ou ate AlvoRunner (= 0).
+//
+// Calibragem: 173 pregoes de WIN em 5 min, avaliacao da mesa simulada
+// comecando em cada pregao da amostra. Amplitude 4 com saida pela virada
+// deu 0,92 sinais por dia contra 0,53 da Amplitude 12 com alvo fixo,
+// mantendo a chance de aprovacao (98% na primeira metade da amostra e
+// 77% na segunda, contra 97% e 81%). Amplitude 2 e despenhadeiro:
+// a eliminacao sobe para 77% na primeira metade. Nao reduza abaixo de 3.
 //   stop      StopPontos, e vai para o zero a zero depois da parcial
 //   dia       encerra tudo em HoraZerar, maximo MaxOperacoesDia entradas,
 //             para de operar ao atingir AlvoDiaReais
@@ -35,7 +43,7 @@
 //=====================================================================
 
 input
-  Amplitude(12);           // janela de maximas e minimas. Maior = menos viradas
+  Amplitude(4);            // janela de maximas e minimas. Maior = menos viradas
   DesvioCanal(2.0);        // largura do canal, em multiplos de meio ATR
   PeriodoATR(100);         // periodo do ATR que define o canal
   FiltroHorario(1);        // 1 = liga o filtro de horario
@@ -48,13 +56,19 @@ input
   FiltroVolume(1);         // 1 = liga o filtro de volume
   VolumeMaximo(1.0);       // volume da barra / media. Acima disso o sinal nao vale
   PeriodoVolume(20);       // quantas barras entram na media de volume
-  StopPontos(400);         // stop em pontos
-  AlvoParcial(250);        // alvo do primeiro contrato
-  AlvoRunner(500);         // alvo do segundo contrato
+  StopPontos(250);         // stop em pontos
+  ContratosParcial(2);     // contratos que saem no AlvoParcial
+  ContratosRunner(2);      // contratos que seguem no runner
+  AlvoParcial(250);        // alvo dos contratos da parcial
+  AlvoRunner(500);         // alvo do runner quando SaidaPelaVirada = 0
+  SaidaPelaVirada(1);      // 1 = runner segura ate a linha virar contra, em vez
+                           //     de sair em AlvoRunner. Medido em 173 pregoes,
+                           //     permite usar Amplitude menor (mais sinais) sem
+                           //     piorar a chance de aprovacao na mesa
   UsarZeroAZero(1);        // 1 = stop vai ao zero a zero apos a parcial
   MaxOperacoesDia(3);      // entradas por pregao. 3 mede melhor que 2: nos poucos
                            // dias com varios sinais, o terceiro tambem e bom
-  AlvoDiaReais(600);       // para de operar ao atingir este lucro no dia
+  AlvoDiaReais(900);       // para de operar ao atingir este lucro no dia
   ValorPonto(0.20);        // WIN = 0,20. WDO = 10,00
   Operar(0);               // 0 = so desenha (sem setas) | 1 = envia ordens, para o Backtest
   MostrarCanal(1);
@@ -99,6 +113,8 @@ var
   virouCompra  : boolean;
   virouVenda   : boolean;
   sinalValido  : boolean;
+  sinalPend    : integer;   // 0 = nenhum, 1 = compra, 2 = venda
+  barraPend    : integer;   // barra em que o sinal pendente nasceu
   opsHoje      : integer;
   lucroHoje    : float;
   fezParcial   : boolean;
@@ -129,6 +145,7 @@ begin
     begin
       opsHoje    := 0;
       lucroHoje  := 0;
+      sinalPend  := 0;
       barrasHoje := 0;
     end;
     horaAnt := horaAtual;
@@ -310,6 +327,25 @@ begin
       end;
 
       sinalValido := horaOk and volOk and fluxoOk;
+
+      // O sinal fica pendente por uma barra. Isso importa quando o runner
+      // sai pela virada da linha: a ordem de saida so executa na abertura
+      // da barra seguinte, entao na barra do sinal a posicao ainda consta
+      // aberta. Sem o pendente, toda entrada que nasce de uma virada que
+      // tambem encerra a posicao anterior seria perdida.
+      if (sinalValido) then
+      begin
+        if (virouCompra) then
+        begin
+          sinalPend := 1;
+          barraPend := CurrentBar;
+        end
+        else if (virouVenda) then
+        begin
+          sinalPend := 2;
+          barraPend := CurrentBar;
+        end;
+      end;
     end;
 
     //-----------------------------------------------------------------
@@ -368,13 +404,22 @@ begin
         end;
 
         if (horaAtual >= HoraZerar) then
-          SellToCoverAtMarket(2)
+          SellToCoverAtMarket(ContratosParcial + ContratosRunner)
         else
         begin
           if (Low <= stopAtual) then
           begin
-            SellToCoverAtMarket(2);
-            lucroHoje := lucroHoje + ((stopAtual - precoEntrada) * 2 * ValorPonto);
+            if (fezParcial) then
+            begin
+              SellToCoverAtMarket(ContratosRunner);
+              lucroHoje := lucroHoje + ((stopAtual - precoEntrada) * ContratosRunner * ValorPonto);
+            end
+            else
+            begin
+              SellToCoverAtMarket(ContratosParcial + ContratosRunner);
+              lucroHoje := lucroHoje + ((stopAtual - precoEntrada)
+                           * (ContratosParcial + ContratosRunner) * ValorPonto);
+            end;
           end
           else
           begin
@@ -382,19 +427,32 @@ begin
             begin
               if (High >= (precoEntrada + AlvoParcial)) then
               begin
-                SellToCoverAtMarket(1);
+                SellToCoverAtMarket(ContratosParcial);
                 fezParcial := true;
-                lucroHoje  := lucroHoje + (AlvoParcial * ValorPonto);
+                lucroHoje  := lucroHoje + (AlvoParcial * ContratosParcial * ValorPonto);
                 if (UsarZeroAZero = 1) then
                   stopAtual := precoEntrada;
               end;
             end
             else
             begin
-              if (High >= (precoEntrada + AlvoRunner)) then
+              //--- saida do runner
+              if (SaidaPelaVirada = 1) then
               begin
-                SellToCoverAtMarket(1);
-                lucroHoje := lucroHoje + (AlvoRunner * ValorPonto);
+                // segura ate a linha virar contra a posicao
+                if (trend = 1) then
+                begin
+                  SellToCoverAtMarket(ContratosRunner);
+                  lucroHoje := lucroHoje + ((Close - precoEntrada) * ContratosRunner * ValorPonto);
+                end;
+              end
+              else
+              begin
+                if (High >= (precoEntrada + AlvoRunner)) then
+                begin
+                  SellToCoverAtMarket(ContratosRunner);
+                  lucroHoje := lucroHoje + (AlvoRunner * ContratosRunner * ValorPonto);
+                end;
               end;
             end;
           end;
@@ -410,13 +468,22 @@ begin
         end;
 
         if (horaAtual >= HoraZerar) then
-          BuyToCoverAtMarket(2)
+          BuyToCoverAtMarket(ContratosParcial + ContratosRunner)
         else
         begin
           if (High >= stopAtual) then
           begin
-            BuyToCoverAtMarket(2);
-            lucroHoje := lucroHoje + ((precoEntrada - stopAtual) * 2 * ValorPonto);
+            if (fezParcial) then
+            begin
+              BuyToCoverAtMarket(ContratosRunner);
+              lucroHoje := lucroHoje + ((precoEntrada - stopAtual) * ContratosRunner * ValorPonto);
+            end
+            else
+            begin
+              BuyToCoverAtMarket(ContratosParcial + ContratosRunner);
+              lucroHoje := lucroHoje + ((precoEntrada - stopAtual)
+                           * (ContratosParcial + ContratosRunner) * ValorPonto);
+            end;
           end
           else
           begin
@@ -424,19 +491,30 @@ begin
             begin
               if (Low <= (precoEntrada - AlvoParcial)) then
               begin
-                BuyToCoverAtMarket(1);
+                BuyToCoverAtMarket(ContratosParcial);
                 fezParcial := true;
-                lucroHoje  := lucroHoje + (AlvoParcial * ValorPonto);
+                lucroHoje  := lucroHoje + (AlvoParcial * ContratosParcial * ValorPonto);
                 if (UsarZeroAZero = 1) then
                   stopAtual := precoEntrada;
               end;
             end
             else
             begin
-              if (Low <= (precoEntrada - AlvoRunner)) then
+              if (SaidaPelaVirada = 1) then
               begin
-                BuyToCoverAtMarket(1);
-                lucroHoje := lucroHoje + (AlvoRunner * ValorPonto);
+                if (trend = 0) then
+                begin
+                  BuyToCoverAtMarket(ContratosRunner);
+                  lucroHoje := lucroHoje + ((precoEntrada - Close) * ContratosRunner * ValorPonto);
+                end;
+              end
+              else
+              begin
+                if (Low <= (precoEntrada - AlvoRunner)) then
+                begin
+                  BuyToCoverAtMarket(ContratosRunner);
+                  lucroHoje := lucroHoje + (AlvoRunner * ContratosRunner * ValorPonto);
+                end;
               end;
             end;
           end;
@@ -447,31 +525,29 @@ begin
         //-------------------------------------------------------------
         // Sem posicao: avalia entrada
         //-------------------------------------------------------------
-        if (sinalValido) then
+        if (sinalPend <> 0) then
         begin
-          if (opsHoje < MaxOperacoesDia) then
+          if ((CurrentBar - barraPend) <= 1) then
           begin
-            if (lucroHoje < AlvoDiaReais) then
+            if (opsHoje < MaxOperacoesDia) then
             begin
-              if (virouCompra) then
+              if (lucroHoje < AlvoDiaReais) then
               begin
-                BuyAtMarket(2);
+                if (sinalPend = 1) then
+                  BuyAtMarket(ContratosParcial + ContratosRunner)
+                else
+                  SellShortAtMarket(ContratosParcial + ContratosRunner);
+
                 // O preco de entrada NAO e definido aqui. A ordem executa
                 // na abertura do candle seguinte, e so la o preenchimento
                 // real existe. Fixar Close aqui desloca stop e alvos.
                 entradaArmada := true;
                 fezParcial    := false;
                 opsHoje       := opsHoje + 1;
-              end
-              else if (virouVenda) then
-              begin
-                SellShortAtMarket(2);
-                entradaArmada := true;
-                fezParcial    := false;
-                opsHoje       := opsHoje + 1;
               end;
             end;
           end;
+          sinalPend := 0;
         end;
       end;
     end;
