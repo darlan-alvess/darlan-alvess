@@ -677,14 +677,37 @@ details p {
   }
 }
 
-/* ===== Empresas atendidas ===== */
+/* ===== Empresas atendidas (rolagem lateral) ===== */
+.carrossel {
+  margin-left: 120px;
+  overflow: hidden;
+  border-top: 1px solid var(--linha);
+  border-bottom: 1px solid var(--linha);
+  /* Esmaece as bordas para os nomes "entrarem" e "saírem" suavemente */
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+}
+
+.carrossel-trilho {
+  display: flex;
+  width: max-content;
+  animation: rolagem 40s linear infinite;
+}
+
+/* Pausa ao passar o mouse, para quem quiser ler com calma */
+.carrossel:hover .carrossel-trilho {
+  animation-play-state: paused;
+}
+
+/* Move exatamente uma lista inteira; como a segunda é igual, o recomeço não aparece */
+@keyframes rolagem {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
 .clientes {
   list-style: none;
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  margin-left: 120px;
-  border-top: 1px solid var(--linha);
-  border-left: 1px solid var(--linha);
+  display: flex;
 }
 
 .clientes li {
@@ -692,22 +715,16 @@ details p {
   flex-direction: column;
   justify-content: center;
   gap: 6px;
-  min-height: 112px;
-  padding: 20px;
+  min-width: 220px;
+  padding: 28px 32px;
   border-right: 1px solid var(--linha);
-  border-bottom: 1px solid var(--linha);
-  transition: background 0.2s;
-}
-
-.clientes li:hover {
-  background: var(--superficie);
 }
 
 .clientes strong {
   font-family: var(--fonte-titulo);
   font-weight: 500;
-  font-size: 1.1rem;
-  line-height: 1.25;
+  font-size: 1.25rem;
+  white-space: nowrap;
 }
 
 .clientes span {
@@ -718,6 +735,17 @@ details p {
   color: var(--destaque);
 }
 
+/* Quem configurou o sistema para reduzir movimento vê a lista parada */
+@media (prefers-reduced-motion: reduce) {
+  .carrossel {
+    overflow-x: auto;
+  }
+
+  .carrossel-trilho {
+    animation: none;
+  }
+}
+
 .carta-texto .cargo {
   font-family: var(--fonte-mono);
   font-size: 0.8rem;
@@ -725,19 +753,14 @@ details p {
 }
 
 @media (max-width: 900px) {
-  .clientes {
-    grid-template-columns: repeat(3, 1fr);
+  .carrossel {
     margin-left: 0;
   }
 }
 
 @media (max-width: 600px) {
-  .clientes {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
   .clientes li {
-    min-height: 92px;
-    padding: 16px;
+    min-width: 180px;
+    padding: 20px 24px;
   }
 }
