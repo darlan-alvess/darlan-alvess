@@ -283,9 +283,6 @@ a {
 }
 
 .secao-cabecalho {
-  display: grid;
-  grid-template-columns: 120px 1fr;
-  align-items: baseline;
   margin-bottom: 40px;
 }
 
@@ -299,7 +296,6 @@ a {
 /* ===== Tabelas (sintomas e comparativo) ===== */
 .tabela-wrap {
   overflow-x: auto;
-  margin-left: 120px;
 }
 
 .tabela {
@@ -351,7 +347,7 @@ a {
 /* ===== Serviços em linhas ===== */
 .servico {
   display: grid;
-  grid-template-columns: 120px 1.3fr 1fr;
+  grid-template-columns: 1.3fr 1fr;
   gap: 24px;
   padding: 32px 0;
   border-top: 1px solid var(--linha);
@@ -361,11 +357,6 @@ a {
   border-bottom: 1px solid var(--linha);
 }
 
-.servico-num {
-  font-family: var(--fonte-mono);
-  font-size: 1.1rem;
-  color: var(--destaque);
-}
 
 .servico h3 {
   font-family: var(--fonte-titulo);
@@ -409,7 +400,6 @@ a {
 
 /* ===== Segmentos ===== */
 .segmentos {
-  margin-left: 120px;
   font-family: var(--fonte-titulo);
   font-size: clamp(1.4rem, 3vw, 2.2rem);
   line-height: 1.5;
@@ -425,7 +415,6 @@ a {
   list-style: none;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  margin-left: 120px;
   border-top: 2px solid var(--destaque);
 }
 
@@ -452,7 +441,6 @@ a {
 
 /* ===== Carta (sobre) ===== */
 .carta-texto {
-  margin-left: 120px;
   max-width: 680px;
 }
 
@@ -477,7 +465,6 @@ a {
 
 /* ===== FAQ ===== */
 .faq {
-  margin-left: 120px;
   max-width: 760px;
 }
 
@@ -617,26 +604,9 @@ details p {
     border-top: 1px solid var(--linha);
   }
 
-  /* Remove a "margem de livro" de 120px em telas menores */
-  .secao-cabecalho {
-    grid-template-columns: 1fr;
-    gap: 6px;
-  }
-
-  .tabela-wrap,
-  .segmentos,
-  .etapas,
-  .carta-texto,
-  .faq {
-    margin-left: 0;
-  }
-
   .servico {
-    grid-template-columns: 48px 1fr;
-  }
-
-  .itens {
-    grid-column: 2;
+    grid-template-columns: 1fr;
+    gap: 16px;
   }
 }
 
@@ -679,7 +649,6 @@ details p {
 
 /* ===== Empresas atendidas (rolagem lateral) ===== */
 .carrossel {
-  margin-left: 120px;
   overflow: hidden;
   border-top: 1px solid var(--linha);
   border-bottom: 1px solid var(--linha);
@@ -752,11 +721,6 @@ details p {
   margin-top: -12px;
 }
 
-@media (max-width: 900px) {
-  .carrossel {
-    margin-left: 0;
-  }
-}
 
 @media (max-width: 600px) {
   .clientes li {
