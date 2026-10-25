@@ -7,7 +7,7 @@
   <meta name="description" content="Lançamento de notas fiscais de compra e venda, correção tributária e de estoque para o varejo. Atendimento remoto para todo o Brasil.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -15,137 +15,229 @@
   <!-- Cabeçalho -->
   <header class="header">
     <div class="container header-content">
-      <a href="#inicio" class="logo">Darlan<span>Alves</span></a>
+      <a href="#inicio" class="logo">
+        <span class="logo-marca">DA</span>
+        Darlan Alves
+      </a>
       <nav class="nav">
         <a href="#servicos">Serviços</a>
-        <a href="#comparativo">Vantagens</a>
+        <a href="#custo">Custo</a>
         <a href="#segmentos">Segmentos</a>
-        <a href="#faq">Dúvidas</a>
+        <a href="#duvidas">Dúvidas</a>
       </nav>
-      <a href="https://wa.me/5528999381528?text=Ol%C3%A1%20Darlan%2C%20quero%20saber%20mais%20sobre%20seus%20servi%C3%A7os." class="btn btn-small" target="_blank" rel="noopener">WhatsApp</a>
+      <a href="https://wa.me/5528999381528?text=Ol%C3%A1%20Darlan%2C%20quero%20saber%20mais%20sobre%20seus%20servi%C3%A7os." class="btn btn-pequeno" target="_blank" rel="noopener">Falar no WhatsApp</a>
     </div>
   </header>
 
   <main>
 
-    <!-- Hero -->
+    <!-- Hero: texto em primeira pessoa + "nota" de conferência -->
     <section class="hero" id="inicio">
-      <div class="container hero-content">
-        <span class="tag">Atendimento 100% remoto · Todo o Brasil</span>
-        <h1>Terceirize a rotina fiscal e de estoque da sua loja <span class="destaque">e ganhe tempo para o seu negócio.</span></h1>
-        <p class="hero-texto">Lanço suas notas de compra e venda, corrijo impostos e mantenho seu estoque em dia. Você tem um especialista cuidando disso por um valor justo, menor que o custo de um funcionário.</p>
-        <div class="hero-botoes">
-          <a href="https://wa.me/5528999381528?text=Ol%C3%A1%20Darlan%2C%20quero%20um%20diagn%C3%B3stico%20da%20minha%20loja." class="btn" target="_blank" rel="noopener">Quero um diagnóstico</a>
-          <a href="#servicos" class="btn btn-outline">Ver serviços</a>
-        </div>
-        <ul class="hero-numeros">
-          <li><strong>17 anos</strong><span>em tecnologia</span></li>
-          <li><strong>+8 anos</strong><span>com ERP de varejo</span></li>
-          <li><strong>+800</strong><span>produtos auditados</span></li>
-        </ul>
-      </div>
-    </section>
+      <div class="container hero-grid">
 
-    <!-- Dor -->
-    <section class="secao secao-alt">
+        <div class="hero-texto">
+          <p class="rotulo">Rotina fiscal e estoque · Atendimento remoto</p>
+          <h1>Eu lanço suas notas, corrijo seus impostos e acerto seu estoque. <em>Você cuida da loja.</em></h1>
+          <p class="hero-apoio">Trabalho direto no seu ERP, de forma remota. Você tem um especialista cuidando da parte fiscal por um valor justo, menor que o custo de manter um funcionário só para isso.</p>
+          <div class="hero-botoes">
+            <a href="https://wa.me/5528999381528?text=Ol%C3%A1%20Darlan%2C%20quero%20um%20diagn%C3%B3stico%20da%20minha%20loja." class="btn" target="_blank" rel="noopener">Pedir um diagnóstico</a>
+            <a href="#servicos" class="link-seta">Ver o que eu faço →</a>
+          </div>
+        </div>
+
+        <figure class="nota" aria-label="Exemplo de conferência de cadastro">
+          <div class="nota-topo">
+            <span>Conferência de cadastro</span>
+            <span class="nota-num">Nº 000.127</span>
+          </div>
+          <table class="nota-tabela">
+            <thead>
+              <tr>
+                <th>Produto</th>
+                <th>Campo</th>
+                <th>Antes</th>
+                <th>Depois</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Cerveja lata 350ml</td>
+                <td>CST ICMS</td>
+                <td><s>00</s></td>
+                <td class="ok">60 · ST</td>
+              </tr>
+              <tr>
+                <td>Refrigerante 2L</td>
+                <td>CST PIS/Cofins</td>
+                <td><s>01</s></td>
+                <td class="ok">04 · Monof.</td>
+              </tr>
+              <tr>
+                <td>Cimento CP-II 50kg</td>
+                <td>NCM</td>
+                <td><s>2523.90.00</s></td>
+                <td class="ok">2523.29.10</td>
+              </tr>
+              <tr>
+                <td>Ração 15kg</td>
+                <td>Estoque</td>
+                <td><s>42 un</s></td>
+                <td class="ok">37 un</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="nota-rodape">
+            <span>4 itens corrigidos</span>
+            <span class="carimbo">Conferido</span>
+          </div>
+        </figure>
+
+      </div>
+
       <div class="container">
-        <h2 class="titulo">Isso acontece na sua loja?</h2>
-        <div class="grid grid-4">
-          <div class="dor">
-            <h3>Horas perdidas</h3>
-            <p>Você ou alguém da equipe para o atendimento para lançar nota no sistema.</p>
-          </div>
-          <div class="dor">
-            <h3>Estoque que não bate</h3>
-            <p>O sistema mostra uma quantidade e a prateleira mostra outra.</p>
-          </div>
-          <div class="dor">
-            <h3>Imposto pago errado</h3>
-            <p>Produtos com ST ou monofásicos tributados em dobro, ou sem tributação quando deveriam ter.</p>
-          </div>
-          <div class="dor">
-            <h3>Cadastro bagunçado</h3>
-            <p>NCM incorreto, produtos duplicados e preços desatualizados.</p>
-          </div>
+        <dl class="fatos">
+          <div><dt>17 anos</dt><dd>em tecnologia</dd></div>
+          <div><dt>+8 anos</dt><dd>com ERP de varejo</dd></div>
+          <div><dt>8 segmentos</dt><dd>do varejo atendidos</dd></div>
+          <div><dt>Vários ERPs</dt><dd>você continua no seu</dd></div>
+        </dl>
+      </div>
+    </section>
+
+    <!-- Sintomas e solução -->
+    <section class="secao">
+      <div class="container">
+        <header class="secao-cabecalho">
+          <p class="rotulo">§ 01</p>
+          <h2>O que costuma dar errado</h2>
+        </header>
+        <div class="tabela-wrap">
+          <table class="tabela">
+            <thead>
+              <tr>
+                <th>Sintoma na loja</th>
+                <th>O que eu faço</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Alguém para o atendimento para lançar nota no sistema.</td>
+                <td>Assumo o lançamento das notas de compra e venda.</td>
+              </tr>
+              <tr>
+                <td>O estoque do sistema não bate com a prateleira.</td>
+                <td>Corrijo o estoque e ajusto a parametrização para não voltar a acontecer.</td>
+              </tr>
+              <tr>
+                <td>Produto com ST ou monofásico tributado de novo.</td>
+                <td>Reviso a tributação de cada produto e corrijo o cadastro.</td>
+              </tr>
+              <tr>
+                <td>NCM errado, produto duplicado, preço desatualizado.</td>
+                <td>Faço o saneamento do cadastro, incluindo itens com composição.</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </section>
 
-    <!-- Serviços -->
+    <!-- Serviços em formato de itens -->
     <section class="secao" id="servicos">
       <div class="container">
-        <h2 class="titulo">Serviços</h2>
-        <p class="subtitulo">Trabalho com diversos sistemas ERP. Você continua usando o seu.</p>
-        <div class="grid grid-3">
+        <header class="secao-cabecalho">
+          <p class="rotulo">§ 02</p>
+          <h2>Serviços</h2>
+        </header>
 
-          <article class="card">
-            <div class="card-icone">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h18v4H3zM5 7v14h14V7M9 12h6"/></svg>
-            </div>
+        <article class="servico">
+          <span class="servico-num">01</span>
+          <div>
             <h3>Notas fiscais de compra</h3>
-            <ul class="lista">
-              <li>Lançamento das notas de entrada</li>
-              <li>Parametrização dos produtos</li>
-              <li>Precificação</li>
-              <li>Correção de estoque</li>
-              <li>Correção de impostos</li>
-            </ul>
-          </article>
+            <p>Lanço as notas de entrada e deixo cada produto pronto para vender, com preço e imposto certos.</p>
+          </div>
+          <ul class="itens">
+            <li>Lançamento</li>
+            <li>Parametrização</li>
+            <li>Precificação</li>
+            <li>Correção de estoque</li>
+            <li>Correção de impostos</li>
+          </ul>
+        </article>
 
-          <article class="card card-destaque">
-            <div class="card-icone">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></svg>
-            </div>
+        <article class="servico">
+          <span class="servico-num">02</span>
+          <div>
             <h3>Notas fiscais de venda</h3>
-            <ul class="lista">
-              <li>Lançamento de vendas em cartão e Pix</li>
-              <li>Parametrização de produtos com ST e monofásicos</li>
-              <li>Ideal para bares, lanchonetes e restaurantes</li>
-              <li>Correção e parametrização de estoque</li>
-            </ul>
-          </article>
+            <p>Lanço as vendas em cartão e Pix e separo corretamente os produtos com ST e monofásicos. Muito comum em bares, lanchonetes e restaurantes.</p>
+          </div>
+          <ul class="itens">
+            <li>Cartão e Pix</li>
+            <li>ST e monofásico</li>
+            <li>Correção de estoque</li>
+            <li>Parametrização</li>
+          </ul>
+        </article>
 
-          <article class="card">
-            <div class="card-icone">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>
-            </div>
-            <h3>Saneamento do cadastro</h3>
-            <ul class="lista">
-              <li>Correção tributária dos produtos</li>
-              <li>Correção do cadastro de produtos</li>
-              <li>Produtos com composição (ficha técnica)</li>
-              <li>Pode ser contratado junto com os outros serviços</li>
-            </ul>
-          </article>
-
-        </div>
+        <article class="servico">
+          <span class="servico-num">03</span>
+          <div>
+            <h3>Saneamento do cadastro <small>adicional</small></h3>
+            <p>Pode ser contratado sozinho ou junto com os lançamentos. É a base para o imposto sair certo.</p>
+          </div>
+          <ul class="itens">
+            <li>Correção tributária</li>
+            <li>Cadastro de produtos</li>
+            <li>Produtos com composição</li>
+          </ul>
+        </article>
       </div>
     </section>
 
-    <!-- Comparativo -->
-    <section class="secao secao-alt" id="comparativo">
+    <!-- Comparativo de custo em tabela -->
+    <section class="secao" id="custo">
       <div class="container">
-        <h2 class="titulo">Funcionário próprio × Meu serviço</h2>
-        <p class="subtitulo">A mesma rotina, com menos custo e mais conhecimento técnico.</p>
-        <div class="grid grid-2 comparativo">
-          <div class="coluna coluna-contra">
-            <h3>Funcionário próprio</h3>
-            <ul>
-              <li>Salário, encargos, férias e 13º</li>
-              <li>Tempo e custo de treinamento</li>
-              <li>Nem sempre domina a parte tributária</li>
-              <li>Faltas e afastamentos param a rotina</li>
-            </ul>
-          </div>
-          <div class="coluna coluna-pro">
-            <h3>Meu serviço</h3>
-            <ul>
-              <li>Valor justo, combinado conforme a demanda</li>
-              <li>Especialista em ERP e formado em Ciências Contábeis</li>
-              <li>Correção tributária incluída na rotina</li>
-              <li>Sem encargos trabalhistas</li>
-            </ul>
-          </div>
+        <header class="secao-cabecalho">
+          <p class="rotulo">§ 03</p>
+          <h2>Funcionário próprio ou meu serviço?</h2>
+        </header>
+        <div class="tabela-wrap">
+          <table class="tabela tabela-comparativo">
+            <thead>
+              <tr>
+                <th></th>
+                <th>Funcionário próprio</th>
+                <th class="col-destaque">Meu serviço</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th>Custo</th>
+                <td>Salário + INSS, FGTS, férias e 13º</td>
+                <td class="col-destaque">Valor combinado conforme a demanda</td>
+              </tr>
+              <tr>
+                <th>Treinamento</th>
+                <td>Você treina e arca com os erros iniciais</td>
+                <td class="col-destaque">Já chega sabendo</td>
+              </tr>
+              <tr>
+                <th>Parte tributária</th>
+                <td>Nem sempre domina ST, monofásico e NCM</td>
+                <td class="col-destaque">Formação em Ciências Contábeis</td>
+              </tr>
+              <tr>
+                <th>Faltas e férias</th>
+                <td>A rotina para</td>
+                <td class="col-destaque">A rotina continua</td>
+              </tr>
+              <tr>
+                <th>Vínculo</th>
+                <td>Trabalhista</td>
+                <td class="col-destaque">Prestação de serviço</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </section>
@@ -153,89 +245,101 @@
     <!-- Segmentos -->
     <section class="secao" id="segmentos">
       <div class="container">
-        <h2 class="titulo">Segmentos atendidos</h2>
-        <ul class="segmentos">
-          <li>Bares</li>
-          <li>Lanchonetes</li>
-          <li>Restaurantes</li>
-          <li>Lojas de roupas</li>
-          <li>Agropecuárias</li>
-          <li>Hortifrúti</li>
-          <li>Mercados</li>
-          <li>Materiais de construção</li>
-        </ul>
+        <header class="secao-cabecalho">
+          <p class="rotulo">§ 04</p>
+          <h2>Onde eu atuo</h2>
+        </header>
+        <p class="segmentos">
+          Bares<span>/</span> Lanchonetes<span>/</span> Restaurantes<span>/</span> Lojas de roupas<span>/</span> Agropecuárias<span>/</span> Hortifrúti<span>/</span> Mercados<span>/</span> Materiais de construção
+        </p>
       </div>
     </section>
 
     <!-- Como funciona -->
-    <section class="secao secao-alt">
+    <section class="secao">
       <div class="container">
-        <h2 class="titulo">Como funciona</h2>
-        <div class="grid grid-3">
-          <div class="passo">
-            <span class="passo-numero">1</span>
+        <header class="secao-cabecalho">
+          <p class="rotulo">§ 05</p>
+          <h2>Como funciona</h2>
+        </header>
+        <ol class="etapas">
+          <li>
+            <span class="etapa-num">Etapa 1</span>
             <h3>Diagnóstico</h3>
-            <p>Conversamos sobre a sua loja, o seu sistema e o volume de notas.</p>
-          </div>
-          <div class="passo">
-            <span class="passo-numero">2</span>
+            <p>Conversamos sobre a loja, o sistema e o volume de notas.</p>
+          </li>
+          <li>
+            <span class="etapa-num">Etapa 2</span>
             <h3>Proposta</h3>
-            <p>Você recebe uma proposta com o escopo e o valor, sem surpresas.</p>
-          </div>
-          <div class="passo">
-            <span class="passo-numero">3</span>
+            <p>Você recebe o escopo e o valor por escrito, sem surpresas.</p>
+          </li>
+          <li>
+            <span class="etapa-num">Etapa 3</span>
             <h3>Rotina em dia</h3>
-            <p>Acesso remoto ao seu ERP e execução da rotina combinada.</p>
-          </div>
+            <p>Acesso remoto ao seu ERP e execução do que foi combinado.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- Sobre, em formato de carta -->
+    <section class="secao">
+      <div class="container carta">
+        <header class="secao-cabecalho">
+          <p class="rotulo">§ 06</p>
+          <h2>Quem vai cuidar disso</h2>
+        </header>
+        <div class="carta-texto">
+          <p>Trabalho com tecnologia há 17 anos, e há mais de 8 com sistemas ERP para o varejo. Sou formado em Ciências Contábeis, então entendo tanto o sistema quanto o imposto que sai dele.</p>
+          <p>No dia a dia vejo sempre a mesma coisa: o dono da loja perdendo tempo com nota, estoque que não bate e imposto pago errado sem ninguém perceber. É exatamente essa parte que eu assumo.</p>
+          <p class="assinatura">Darlan Alves</p>
         </div>
       </div>
     </section>
 
-    <!-- Sobre -->
-    <section class="secao">
-      <div class="container sobre">
-        <h2 class="titulo">Quem vai cuidar da sua loja</h2>
-        <p>Sou <strong>Darlan Alves</strong>, analista de suporte e consultor técnico de ERP para varejo. São 17 anos em TI, mais de 8 deles com sistemas ERP, e formação em Ciências Contábeis.</p>
-        <p>Já realizei a auditoria fiscal de mais de 800 produtos, verificando NCM, ICMS, PIS/Cofins monofásico e cClassTrib. Meu objetivo é simples: tirar essa rotina das suas mãos e entregar um trabalho bem feito.</p>
-      </div>
-    </section>
-
-    <!-- FAQ -->
-    <section class="secao secao-alt" id="faq">
-      <div class="container faq">
-        <h2 class="titulo">Dúvidas frequentes</h2>
-        <details>
-          <summary>Quanto custa?</summary>
-          <p>O valor é sob consulta, porque depende do volume de notas e dos serviços escolhidos. Depois do diagnóstico você recebe uma proposta clara.</p>
-        </details>
-        <details>
-          <summary>Funciona com o meu sistema?</summary>
-          <p>Trabalho com diversos ERPs. Me conte qual você usa e eu confirmo.</p>
-        </details>
-        <details>
-          <summary>Como é feito o atendimento?</summary>
-          <p>De forma 100% remota, por acesso ao seu sistema, para qualquer região do Brasil.</p>
-        </details>
-        <details>
-          <summary>Posso contratar só a correção do cadastro?</summary>
-          <p>Pode. O saneamento do cadastro pode ser contratado sozinho ou junto com os lançamentos.</p>
-        </details>
-      </div>
-    </section>
-
-    <!-- CTA final -->
-    <section class="secao cta">
+    <!-- Dúvidas -->
+    <section class="secao" id="duvidas">
       <div class="container">
-        <h2>Pronto para tirar essa rotina das suas mãos?</h2>
-        <p>Chame no WhatsApp e solicite um diagnóstico sem compromisso.</p>
-        <a href="https://wa.me/5528999381528?text=Ol%C3%A1%20Darlan%2C%20quero%20um%20diagn%C3%B3stico%20da%20minha%20loja." class="btn" target="_blank" rel="noopener">Falar no WhatsApp · (28) 99938-1528</a>
+        <header class="secao-cabecalho">
+          <p class="rotulo">§ 07</p>
+          <h2>Dúvidas frequentes</h2>
+        </header>
+        <div class="faq">
+          <details>
+            <summary>Quanto custa?</summary>
+            <p>O valor é sob consulta, porque depende do volume de notas e dos serviços escolhidos. Depois do diagnóstico você recebe uma proposta clara.</p>
+          </details>
+          <details>
+            <summary>Funciona com o meu sistema?</summary>
+            <p>Trabalho com diversos ERPs. Me conte qual você usa e eu confirmo.</p>
+          </details>
+          <details>
+            <summary>Como é feito o atendimento?</summary>
+            <p>De forma 100% remota, com acesso ao seu sistema, para qualquer região do Brasil.</p>
+          </details>
+          <details>
+            <summary>Posso contratar só a correção do cadastro?</summary>
+            <p>Pode. O saneamento do cadastro pode ser contratado sozinho ou junto com os lançamentos.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- Chamada final -->
+    <section class="cta">
+      <div class="container cta-conteudo">
+        <h2>Vamos colocar a parte fiscal da sua loja em dia?</h2>
+        <div>
+          <a href="https://wa.me/5528999381528?text=Ol%C3%A1%20Darlan%2C%20quero%20um%20diagn%C3%B3stico%20da%20minha%20loja." class="btn" target="_blank" rel="noopener">Chamar no WhatsApp</a>
+          <p class="cta-telefone">(28) 99938-1528</p>
+        </div>
       </div>
     </section>
 
   </main>
 
   <footer class="footer">
-    <div class="container footer-content">
+    <div class="container footer-conteudo">
       <p>© 2026 Darlan Alves · Rotina fiscal e estoque para o varejo</p>
       <div class="footer-links">
         <a href="mailto:darlan.oliveira.alves@gmail.com">E-mail</a>
