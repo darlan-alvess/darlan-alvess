@@ -676,3 +676,68 @@ details p {
     width: auto;
   }
 }
+
+/* ===== Empresas atendidas ===== */
+.clientes {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  margin-left: 120px;
+  border-top: 1px solid var(--linha);
+  border-left: 1px solid var(--linha);
+}
+
+.clientes li {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  min-height: 112px;
+  padding: 20px;
+  border-right: 1px solid var(--linha);
+  border-bottom: 1px solid var(--linha);
+  transition: background 0.2s;
+}
+
+.clientes li:hover {
+  background: var(--superficie);
+}
+
+.clientes strong {
+  font-family: var(--fonte-titulo);
+  font-weight: 500;
+  font-size: 1.1rem;
+  line-height: 1.25;
+}
+
+.clientes span {
+  font-family: var(--fonte-mono);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--destaque);
+}
+
+.carta-texto .cargo {
+  font-family: var(--fonte-mono);
+  font-size: 0.8rem;
+  margin-top: -12px;
+}
+
+@media (max-width: 900px) {
+  .clientes {
+    grid-template-columns: repeat(3, 1fr);
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .clientes {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .clientes li {
+    min-height: 92px;
+    padding: 16px;
+  }
+}
